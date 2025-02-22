@@ -4,6 +4,8 @@ Basic R implementation of the Simplex algorithm for Linear Programming Optimisat
 
 Provides graphical display for 2 dimensional problems.
 
+<img src="/images/simplex_iteration_01.png" width=30%/><img src="/images/simplex_iteration_02.png" width=30%/><img src="/images/simplex_iteration_03.png" width=30%/>
+
 Usage:
 
 Problem should be expressed in 'standard form' for linear programming:
