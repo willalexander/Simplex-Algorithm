@@ -4,10 +4,10 @@ library(ggplotify)
 
 EPSILON = 0.000001
 
-initialise_simplex <- function(A, B, C) {
+initialise_simplex <- function(A, B, C, display) {
     # Creates & initialises a global Simplex tableau,
     # using the A, B & C standard form values provided.
-    # Displays the resulting tableau.
+    # If indicated, displays the resulting tableau.
 
     tableau = matrix(nrow=0, ncol=length(A) + dim(B)[2] + 2)
 
@@ -37,13 +37,14 @@ initialise_simplex <- function(A, B, C) {
 
     tableau <<- tableau
 
-    display_simplex()
+    if(display)
+        display_simplex()
 }
 
-iterate_simplex <- function() {
+iterate_simplex <- function(display) {
     # Perform 1 iteration of the simplex algorithm on
     # the global tableau. 
-    # Displays the resulting tableau.
+    # If indicated, displays the resulting tableau.
 
     if(!optimum_is_attained())
     {
@@ -54,7 +55,8 @@ iterate_simplex <- function() {
         tableau <<- tableau
     }
 
-    display_simplex()
+    if(display)
+        display_simplex()
 }
 
 get_identity_index <- function(column) {
@@ -372,6 +374,21 @@ graph_plot <- function() {
     points(current_solution[1], current_solution[2], pch=19, col=col)
 }
 
+summarise_state <- function(compact) {
+    # Return a string describing the current values of the
+    # main variables & objective function
+
+    solution_vector = interpet_tableau()
+    current_solution <<- solution_vector[1:2]
+
+    sep = "\n"
+    if(compact)
+        sep = ". "
+
+    state_text = paste("x1: ", as.character(current_solution[1]), sep, "x2: ", as.character(current_solution[2]), sep, "Objective Function: ", as.character(A %*% current_solution), sep="")
+    return(state_text)
+}
+
 display_simplex <- function() {
     # Display the current state of the Simplex algorithm:
     # 1. The graphical representation
@@ -401,8 +418,7 @@ display_simplex <- function() {
     mat <<- mat
     cols <<-cols
 
-    solution_vector = interpet_tableau()
-    current_solution <<- solution_vector[1:2]
+    state_text = summarise_state(compact=FALSE)
 
     col = "red"
     status = "Optimum not yet acheived."
@@ -412,9 +428,31 @@ display_simplex <- function() {
         status = "** OPTIMUM ACHIEVED **"
     }
 
-    solution_text = paste(status, "\n", "x1: ", as.character(current_solution[1]), "\n", "x2: ", as.character(current_solution[2]), "\n", "Objective Function: ", as.character(A %*% current_solution), "\n")
+    solution_text = paste(status, "\n", state_text, "\n")
 
     lay <- rbind(c(1,1,2),
                  c(1,1,3))
     grid.arrange(as.grob(graph_plot), table_plot, textGrob(label=solution_text, gp=gpar(col=col)), layout_matrix = lay)
+}
+
+solve_linear_program <- function(A, B, C) {
+    # Create simplex tableau for the given linear programming problem.
+    # Iterate using the simplex method until otimisation is achieved.
+
+    initialise_simplex(A, B, C, display=FALSE)
+    state_text = summarise_state(compact=TRUE)
+    cat("Initial state: ", state_text, "\n")
+
+    count = 1
+    while(!optimum_is_attained())
+    {   
+        iterate_simplex(display=FALSE)
+        state_text = summarise_state(compact=TRUE)
+        cat("Iteration #", count, ": ", state_text, "\n", sep="")
+        count = count + 1
+    }
+
+    cat("\nOptimisation complete:\n")
+    state_text = summarise_state(compact=FALSE)
+    cat(state_text, "\n")
 }
