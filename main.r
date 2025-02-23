@@ -46,7 +46,7 @@ iterate_simplex <- function(display) {
     # the global tableau. 
     # If indicated, displays the resulting tableau.
 
-    if((problem_is_feasible()) && (!optimum_is_attained()))
+    if((problem_is_valid()) && (!optimum_is_attained()))
     {
         bottom_row = get_bottom_row(tableau)
         pivot_column = find_smallest_entry(bottom_row)
@@ -101,6 +101,10 @@ optimum_is_attained <- function() {
     return(FALSE)
 }
 
+problem_is_valid <- function() {
+    return (problem_is_feasible() && problem_is_bounded())
+}
+
 problem_is_feasible <- function() {
     # Determine whether current tableau state is feasible, by
     # detecting infeasible cases.
@@ -114,6 +118,28 @@ problem_is_feasible <- function() {
             next
 
         if(row_sign != sign(RHS_element))
+            return(FALSE)
+    }
+    return(TRUE)
+}
+
+problem_is_bounded <- function() {
+    # Determine whether current tableau state is bounded, by
+    # detecting unbounded feasible cases.
+
+    for(i in 1:(dim(tableau)[2] - 1))
+    {
+        bottom_row_element = tableau[dim(tableau)[1], i]
+        if(bottom_row_element >= 0)
+            next
+
+        all_elements_non_positive = TRUE
+        for(j in 1:(dim(tableau)[1] - 1))
+        {
+            if(tableau[j, i] > 0)
+                all_elements_non_positive = FALSE
+        }
+        if(all_elements_non_positive)
             return(FALSE)
     }
     return(TRUE)
@@ -482,6 +508,8 @@ display_simplex <- function() {
     status = ""  
     if(!problem_is_feasible())
         status = "PROBLEM IS INFEASIBLE"
+    else if(!problem_is_bounded())
+        status = "PROBLEM IS UNBOUNDED"
     else
     {
         status = "Optimum not yet acheived."  
@@ -509,7 +537,7 @@ solve_linear_program <- function(A, B, C) {
     cat("Initial state: ", state_text, "\n")
 
     count = 1
-    while((problem_is_feasible())&&(!optimum_is_attained()))
+    while((problem_is_valid())&&(!optimum_is_attained()))
     {   
         iterate_simplex(display=FALSE)
         state_text = summarise_state(compact=TRUE)
@@ -517,7 +545,7 @@ solve_linear_program <- function(A, B, C) {
         count = count + 1
     }
 
-    if(problem_is_feasible())
+    if(problem_is_valid())
     {
         cat("\nOptimisation complete:\n")
         state_text = summarise_state(compact=FALSE)
@@ -525,6 +553,9 @@ solve_linear_program <- function(A, B, C) {
     }
     else
     {
-        cat("Failed. Problem is not feasible.")
+        if(!problem_is_feasible())
+            cat("Failed. Problem is not feasible.")
+        else
+            cat("Failed. Problem is unbounded.")
     }
 }
