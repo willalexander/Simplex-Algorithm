@@ -21,3 +21,22 @@ solve_linear_program(A, B, C)
 # x1: 4
 # x2: 8
 # Objective Function: 400
+
+
+# Case 02:
+# Example of an infeasible 2D linear program
+# 
+# Maximise x1 + x2, subject to the constraints
+# x1 =< 5
+# -x1 <= -10
+# 
+# Code:  
+A = c(1, 1)
+B = rbind(c(1, 0), c(-1, 0))
+C = c(5, -10)
+
+solve_linear_program(A, B, C)
+
+# Expected result:
+# Solution should end early, detecting that the problem is infeasible.
+

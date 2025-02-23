@@ -46,7 +46,7 @@ iterate_simplex <- function(display) {
     # the global tableau. 
     # If indicated, displays the resulting tableau.
 
-    if(!optimum_is_attained())
+    if((problem_is_feasible()) && (!optimum_is_attained()))
     {
         bottom_row = get_bottom_row(tableau)
         pivot_column = find_smallest_entry(bottom_row)
@@ -99,6 +99,47 @@ optimum_is_attained <- function() {
         return(TRUE)
 
     return(FALSE)
+}
+
+problem_is_feasible <- function() {
+    # Determine whether current tableau state is feasible, by
+    # detecting infeasible cases.
+
+    for(i in 1:(dim(tableau)[1] - 1))
+    {
+        row_main = tableau[i,][1:(dim(tableau)[2] - 1)]
+        RHS_element = tableau[i, dim(tableau)[2]]
+        row_sign = row_has_same_sign(row_main)
+        if(row_sign == 0)
+            next
+
+        if(row_sign != sign(RHS_element))
+            return(FALSE)
+    }
+    return(TRUE)
+}
+
+row_has_same_sign <- function(row) {
+    # Determine whether all non-zero elements of the given row 
+    # have the same sign. If so, return that sign. If not, return zero.
+
+    row_signs = sign(row)
+    row_sign = 0
+    for(i in 1:length(row_signs))
+    {
+        if(row_signs[i] == 0)
+            next
+
+        if(row_sign == 0)
+        {
+            row_sign = row_signs[i]
+            next
+        }
+
+        if(row_sign != row_signs[i])
+            return(0)
+    }
+    return(row_sign)
 }
 
 interpet_tableau <- function() {
@@ -344,11 +385,14 @@ generate_line_segments <- function() {
                 next
 
             intersection_P = get_intersection(Be[i,], Ce[i], Be[j,], Ce[j])
+
             if(length(intersection_P) == 0)
                 next
 
             if(in_feasible_region(intersection_P))
+            {
                 points_d = rbind(points_d, intersection_P)
+            }
         }
     }
 
@@ -361,16 +405,23 @@ graph_plot <- function() {
     # Also plot the current solution position, reflected by
     # the tableau
 
-    plot(points_d)
+    if(dim(points_d)[1] > 0)
+        plot(points_d)
+
     plot(mat, pch=20, col=cols)
-    for(i in 1:(0.5*dim(points_d)[1]))
+
+    if(dim(points_d)[1] > 0)
     {
-        lines(points_d[(i*2-1):(i*2), 1], points_d[(i*2-1):(i*2), 2])
+        for(i in 1:(0.5*dim(points_d)[1]))
+        {
+            lines(points_d[(i*2-1):(i*2), 1], points_d[(i*2-1):(i*2), 2])
+        }
     }
 
     col = "red"
     if(optimum_is_attained())
         col="green"
+
     points(current_solution[1], current_solution[2], pch=19, col=col)
 }
 
@@ -397,13 +448,20 @@ display_simplex <- function() {
 
     points_d = generate_line_segments()
 
-    x_max = max(points_d[,1])
-    y_max = max(points_d[,2])
+    if(dim(points_d)[1] > 0)
+    {
+        x_max = max(points_d[,1])
+        y_max = max(points_d[,2])
 
-    step = x_max / 50
-    sq_x = seq(0.0, x_max, step)
-    sq_y = seq(0.0, y_max, step)
-    mat = cbind(rep(sq_x, length(sq_y)), rep(sq_y, each=length(sq_x)))
+        step = x_max / 50
+        sq_x = seq(0.0, x_max, step)
+        sq_y = seq(0.0, y_max, step)
+        mat = cbind(rep(sq_x, length(sq_y)), rep(sq_y, each=length(sq_x)))
+    }
+    else
+    {
+        mat = matrix(nrow=1, ncol=2, c(0, 0))
+    }
 
     cols=rep("cadetblue1", dim(mat)[1])
     for(i in 1:dim(mat)[1])
@@ -421,17 +479,24 @@ display_simplex <- function() {
     state_text = summarise_state(compact=FALSE)
 
     col = "red"
-    status = "Optimum not yet acheived."
-    if(optimum_is_attained())
+    status = ""  
+    if(!problem_is_feasible())
+        status = "PROBLEM IS INFEASIBLE"
+    else
     {
-        col="green"
-        status = "** OPTIMUM ACHIEVED **"
+        status = "Optimum not yet acheived."  
+        if(optimum_is_attained())
+        {
+            col="green"
+            status = "** OPTIMUM ACHIEVED **"
+        }
     }
 
     solution_text = paste(status, "\n", state_text, "\n")
 
     lay <- rbind(c(1,1,2),
                  c(1,1,3))
+
     grid.arrange(as.grob(graph_plot), table_plot, textGrob(label=solution_text, gp=gpar(col=col)), layout_matrix = lay)
 }
 
@@ -444,7 +509,7 @@ solve_linear_program <- function(A, B, C) {
     cat("Initial state: ", state_text, "\n")
 
     count = 1
-    while(!optimum_is_attained())
+    while((problem_is_feasible())&&(!optimum_is_attained()))
     {   
         iterate_simplex(display=FALSE)
         state_text = summarise_state(compact=TRUE)
@@ -452,7 +517,14 @@ solve_linear_program <- function(A, B, C) {
         count = count + 1
     }
 
-    cat("\nOptimisation complete:\n")
-    state_text = summarise_state(compact=FALSE)
-    cat(state_text, "\n")
+    if(problem_is_feasible())
+    {
+        cat("\nOptimisation complete:\n")
+        state_text = summarise_state(compact=FALSE)
+        cat(state_text, "\n")
+    }
+    else
+    {
+        cat("Failed. Problem is not feasible.")
+    }
 }
