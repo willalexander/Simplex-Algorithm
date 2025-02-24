@@ -60,3 +60,21 @@ solve_linear_program(A, B, C)
 # Expected result:
 # Solution should end early, detecting that the problem is unbounded.
 
+
+# Case 04:
+# Example of a linear program exhibiting cycling * degeneracy
+# 
+# Maximise x1 + x2, subject to the constraints
+# x1 <= 5
+# x1 <= 10
+# 
+# Code:  
+A = c(0.75, -20, 0.5, -6)
+B = rbind(c(0.25, -8, -1, 9), c(0.5, -12, -0.5 ,3), c(0, 0, 1, 0))
+C = c(0, 0, 1)
+
+solve_linear_program(A, B, C)
+
+# Expected result:
+# Solution should end early, detecting that the problem is unbounded.
+
