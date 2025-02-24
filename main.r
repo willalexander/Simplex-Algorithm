@@ -258,25 +258,7 @@ pivot_tableau <- function(pivot_column, pivot_row) {
         if(tableau[i, pivot_column] == 0)
             next
 
-        most_zeros = 0
-        best_row = c()
-        for(j in 1:(dim(tableau)[1]))
-        {   
-            if(i == j)
-                next
-
-            if(tableau[j, pivot_column] == 0)
-                next
-
-            new_row = tableau[i,] - tableau[j,] * (tableau[i, pivot_column] / tableau[j, pivot_column])
-            num_zeros = get_num_zeros(new_row)
-            if(num_zeros > most_zeros)
-            {
-                most_zeros = num_zeros
-                best_row = new_row
-            }
-        }
-        tableau[i,] = best_row
+        tableau[i,] = tableau[i,] - tableau[pivot_row,] * (tableau[i, pivot_column] / tableau[pivot_row, pivot_column])
     }
     tableau <<- tableau
 }
@@ -319,7 +301,7 @@ find_smallest_ratio <- function(pivot_column) {
 
     for(i in 1:(dim(tableau)[1]-1))
     {
-        if(tableau[i, dim(tableau)[2]] == 0)
+        if(tableau[i, pivot_column] <= 0)
             next
 
         ratio = tableau[i, dim(tableau)[2]] / tableau[i, pivot_column] 
