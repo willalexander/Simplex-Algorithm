@@ -9,12 +9,12 @@ initialise_simplex <- function(A, B, C, display) {
     # using the A, B & C standard form values provided.
     # If indicated, displays the resulting tableau.
 
-    tableau = matrix(nrow=0, ncol=length(A) + dim(B)[2] + 2)
+    tableau = matrix(nrow=0, ncol=length(A) + dim(B)[1] + 2)
 
-    for(i in 1:dim(B)[2])
+    for(i in 1:dim(B)[1])
     {
         row = B[i,]
-        for(j in 1:dim(B)[2])
+        for(j in 1:dim(B)[1])
         {
             if(j == i)
                 row = append(row, 1)
@@ -456,7 +456,11 @@ summarise_state <- function(compact) {
     # main variables & objective function
 
     solution_vector = interpet_tableau()
-    current_solution <<- solution_vector[1:2]
+
+    if(is.null(solution_vector))
+        return("")
+
+    current_solution <<- solution_vector[1:length(A)]
 
     sep = "\n"
     if(compact)
@@ -472,28 +476,37 @@ display_simplex <- function() {
     # 2. The Simplex tableau
     # 3. Current values for the main variables & objective function
 
-    points_d = generate_line_segments()
-
-    if(dim(points_d)[1] > 0)
+    if(length(A) == 2)
     {
-        x_max = max(points_d[,1])
-        y_max = max(points_d[,2])
+        points_d = generate_line_segments()
 
-        step = x_max / 50
-        sq_x = seq(0.0, x_max, step)
-        sq_y = seq(0.0, y_max, step)
-        mat = cbind(rep(sq_x, length(sq_y)), rep(sq_y, each=length(sq_x)))
+        if(dim(points_d)[1] > 0)
+        {
+            x_max = max(points_d[,1])
+            y_max = max(points_d[,2])
+
+            step = x_max / 50
+            sq_x = seq(0.0, x_max, step)
+            sq_y = seq(0.0, y_max, step)
+            mat = cbind(rep(sq_x, length(sq_y)), rep(sq_y, each=length(sq_x)))
+        }
+        else
+        {
+            mat = matrix(nrow=1, ncol=2, c(0, 0))
+        }
+
+        cols=rep("cadetblue1", dim(mat)[1])
+        for(i in 1:dim(mat)[1])
+        {
+            if(!in_feasible_region(mat[i,]))
+                cols[i] = "white"
+        }
     }
     else
     {
+        points_d = matrix(nrow=1, ncol=2, c(0, 0))
         mat = matrix(nrow=1, ncol=2, c(0, 0))
-    }
-
-    cols=rep("cadetblue1", dim(mat)[1])
-    for(i in 1:dim(mat)[1])
-    {
-        if(!in_feasible_region(mat[i,]))
-            cols[i] = "white"
+        cols = c("white")
     }
 
     table_plot = tableGrob(tableau)
@@ -512,7 +525,7 @@ display_simplex <- function() {
         status = "PROBLEM IS UNBOUNDED"
     else
     {
-        status = "Optimum not yet acheived."  
+        status = "Optimum not yet achieved."  
         if(optimum_is_attained())
         {
             col="green"
@@ -522,10 +535,18 @@ display_simplex <- function() {
 
     solution_text = paste(status, "\n", state_text, "\n")
 
-    lay <- rbind(c(1,1,2),
-                 c(1,1,3))
-
-    grid.arrange(as.grob(graph_plot), table_plot, textGrob(label=solution_text, gp=gpar(col=col)), layout_matrix = lay)
+    if(length(A) == 2)
+    {
+        lay <- rbind(c(1,1,2),
+                    c(1,1,3))
+        grid.arrange(as.grob(graph_plot), table_plot, textGrob(label=solution_text, gp=gpar(col=col)), layout_matrix = lay)
+    }
+    else
+    {
+        lay <- rbind(c(1),
+                    c(2))
+        grid.arrange(table_plot, textGrob(label=solution_text, gp=gpar(col=col)), layout_matrix = lay)
+    }
 }
 
 solve_linear_program <- function(A, B, C) {
