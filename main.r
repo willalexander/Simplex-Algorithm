@@ -4,6 +4,8 @@ library(ggplotify)
 
 EPSILON = 0.000001
 
+PIVOT_RULE = "LARGEST_NEGATIVE"
+
 initialise_simplex <- function(A, B, C, display) {
     # Creates & initialises a global Simplex tableau,
     # using the A, B & C standard form values provided.
@@ -35,6 +37,8 @@ initialise_simplex <- function(A, B, C, display) {
     colnames(tableau) <- col_names
     rownames(tableau) <- rep("", dim(B)[1] + 1)
 
+    equal_objective_function_count <<- 0
+
     tableau <<- tableau
 
     if(display)
@@ -48,15 +52,52 @@ iterate_simplex <- function(display) {
 
     if((problem_is_valid()) && (!optimum_is_attained()))
     {
+        current_objective_function_value = current_objective_function()
+
         bottom_row = get_bottom_row(tableau)
-        pivot_column = find_smallest_entry(bottom_row)
+
+        if(PIVOT_RULE == "LARGEST_NEGATIVE")
+            pivot_column = pivot_rule_largest_negative(bottom_row)
+        else
+            pivot_column = pivot_rule_smallest_negative(bottom_row)
+        
         pivot_row = find_smallest_ratio(pivot_column)
         tableau = pivot_tableau(pivot_column, pivot_row)
         tableau <<- tableau
+
+        new_objective_function_value = current_objective_function()
+        if(new_objective_function_value > current_objective_function_value)
+            equal_objective_function_count <<- 0
+        else
+        {
+            equal_objective_function_count <<- equal_objective_function_count + 1
+            if((equal_objective_function_count == 10) && (problem_is_degenerate()))
+                change_pivot_rule()
+        }
     }
 
     if(display)
         display_simplex()
+}
+
+problem_is_degenerate <- function() {
+    # Determine whether the current state of the system is degenerate.
+
+    for(i in 1:(dim(tableau)[1] - 1))
+    {
+        if(tableau[i, dim(tableau)[2]] == 0)
+            return(TRUE)
+    }
+    return(FALSE)
+}
+
+change_pivot_rule <- function() {
+    # Switch between the two supported pivot rules
+
+    if(PIVOT_RULE == "LARGEST_NEGATIVE")
+        PIVOT_RULE <<- "SMALLEST_NEGATIVE"
+    else
+        PIVOT_RULE <<- "LARGEST_NEGATIVE"
 }
 
 get_identity_index <- function(column) {
@@ -102,6 +143,8 @@ optimum_is_attained <- function() {
 }
 
 problem_is_valid <- function() {
+    # Check whether the problem is both feasible & bounded
+
     return (problem_is_feasible() && problem_is_bounded())
 }
 
@@ -275,7 +318,7 @@ get_num_zeros <- function(row) {
     return(count)
 }
 
-find_smallest_entry <- function(row) {
+pivot_rule_largest_negative <- function(row) {
     # Find the position of the smallest element in 
     # the given vector.
 
@@ -290,6 +333,26 @@ find_smallest_entry <- function(row) {
         }
     }
     return(min_index)
+}
+
+pivot_rule_smallest_negative <- function(row) {
+    # Find the position of the negative element with smallest
+    # magnitude in the given vector.
+
+    max_index = 1
+    max_value = -100000
+    for(i in 1:length(row))
+    {
+        if(row[i] >= 0)
+            next
+
+        if(row[i] > max_value)
+        {
+            max_index = i
+            max_value = row[i]
+        }
+    }
+    return(max_index)
 }
 
 find_smallest_ratio <- function(pivot_column) {
@@ -431,6 +494,16 @@ graph_plot <- function() {
         col="green"
 
     points(current_solution[1], current_solution[2], pch=19, col=col)
+}
+
+current_objective_function <- function() {
+    # Compute the value of the objective function given the system's
+    # current state.
+
+    solution_vector = interpet_tableau()
+    current_solution <<- solution_vector[1:length(A)]
+    objective_function = A %*% current_solution
+    return(objective_function)
 }
 
 summarise_state <- function(compact) {
