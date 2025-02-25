@@ -604,7 +604,7 @@ display_simplex <- function() {
     }
 }
 
-solve_linear_program <- function(A, B, C) {
+solve_simplex <- function(A, B, C) {
     # Create simplex tableau for the given linear programming problem.
     # Iterate using the simplex method until otimisation is achieved.
 
@@ -634,4 +634,46 @@ solve_linear_program <- function(A, B, C) {
         else
             cat("Failed. Problem is unbounded.")
     }
+}
+
+solve_linear_program <- function(objective_function, 
+                                 max = TRUE,
+                                 max_inequality_constraints = NULL,
+                                 min_inequality_constraints = NULL,
+                                 equality_constraints = NULL,
+                                 freedom) {
+
+    # Parse linear program definition arguments, and convert them into
+    # standard form recognisable by Simplex Algorithm.
+    # Run the Simplex Algorithm.
+
+    if(max == FALSE)
+    {
+        print("ERROR. Minimisation problems not yet supported")
+        return
+    }
+
+    if(!is.null(min_inequality_constraints))
+    {
+        print("ERROR. Minimum constraints not yet supported")
+        return
+    }
+
+    if(!is.null(equality_constraints))
+    {
+        print("ERROR. Equality constraints not yet supported")
+        return
+    }
+
+    A <<- objective_function
+    
+    if((dim(max_inequality_constraints)[2] - 1) != length(A))
+    {
+        print("ERROR. Number of constraint coeffecients does not match number of objective function coefficients.")
+    }
+    B <<- max_inequality_constraints[1:dim(max_inequality_constraints)[1], 1:length(A)]
+
+    C <<- max_inequality_constraints[,length(A) + 1]
+
+    solve_simplex(A, B, C)
 }
