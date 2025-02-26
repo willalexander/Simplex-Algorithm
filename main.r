@@ -430,10 +430,10 @@ in_feasible_region <- function(P) {
     if(P[2] < 0.0)
         return(FALSE)
 
-    for(i in 1:dim(B)[1])
+    for(i in 1:dim(simplex_B)[1])
     {
-        val = as.numeric(B[i,] %*% P)
-        if(val > (C[i] + EPSILON))
+        val = as.numeric(simplex_B[i,] %*% P)
+        if(val > (simplex_C[i] + EPSILON))
             return(FALSE)
     }
     return(TRUE)
@@ -443,8 +443,8 @@ generate_line_segments <- function() {
     # Generates the boundary points of the linear program's
     # convex feasible region, by intersecting all constaint lines.
 
-    Be = rbind(B, c(1, 0), c(0, 1))
-    Ce = append(C, c(0, 0))
+    Be = rbind(simplex_B, c(1, 0), c(0, 1))
+    Ce = append(simplex_C, c(0, 0))
 
     points_d = matrix(nrow=0, ncol=2)
 
@@ -501,8 +501,8 @@ current_objective_function <- function() {
     # current state.
 
     solution_vector = interpet_tableau()
-    current_solution <<- solution_vector[1:length(A)]
-    objective_function = A %*% current_solution
+    current_solution <<- solution_vector[1:length(simplex_A)]
+    objective_function = simplex_A %*% current_solution
     return(objective_function)
 }
 
@@ -515,13 +515,13 @@ summarise_state <- function(compact) {
     if(is.null(solution_vector))
         return("")
 
-    current_solution <<- solution_vector[1:length(A)]
+    current_solution <<- solution_vector[1:length(simplex_A)]
 
     sep = "\n"
     if(compact)
         sep = ". "
 
-    state_text = paste("x1: ", as.character(current_solution[1]), sep, "x2: ", as.character(current_solution[2]), sep, "Objective Function: ", as.character(A %*% current_solution), sep="")
+    state_text = paste("x1: ", as.character(current_solution[1]), sep, "x2: ", as.character(current_solution[2]), sep, "Objective Function: ", as.character(simplex_A %*% current_solution), sep="")
     return(state_text)
 }
 
@@ -531,7 +531,7 @@ display_simplex <- function() {
     # 2. The Simplex tableau
     # 3. Current values for the main variables & objective function
 
-    if(length(A) == 2)
+    if(length(simplex_A) == 2)
     {
         points_d = generate_line_segments()
 
@@ -590,7 +590,7 @@ display_simplex <- function() {
 
     solution_text = paste(status, "\n", state_text, "\n")
 
-    if(length(A) == 2)
+    if(length(simplex_A) == 2)
     {
         lay <- rbind(c(1,1,2),
                     c(1,1,3))
@@ -665,15 +665,15 @@ solve_linear_program <- function(objective_function,
         return
     }
 
-    A <<- objective_function
+    simplex_A <<- objective_function
     
-    if((dim(max_inequality_constraints)[2] - 1) != length(A))
+    if((dim(max_inequality_constraints)[2] - 1) != length(simplex_A))
     {
         print("ERROR. Number of constraint coeffecients does not match number of objective function coefficients.")
     }
-    B <<- max_inequality_constraints[1:dim(max_inequality_constraints)[1], 1:length(A)]
+    simplex_B <<- max_inequality_constraints[1:dim(max_inequality_constraints)[1], 1:length(simplex_A)]
 
-    C <<- max_inequality_constraints[,length(A) + 1]
+    simplex_C <<- max_inequality_constraints[,length(simplex_A) + 1]
 
-    solve_simplex(A, B, C)
+    solve_simplex(simplex_A, simplex_B, simplex_C)
 }
