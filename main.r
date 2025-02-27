@@ -31,8 +31,6 @@ initialise_simplex <- function(A, B, C, display) {
     bottom_row = c(-A, rep(0, dim(B)[1]), 1, 0)
     tableau = rbind(tableau, bottom_row)
 
-    var_name <- function(base, index)
-        paste(base, as.character(index), sep="")
     col_names = c(var_name("x", 1:length(A)), var_name("y", 1:dim(B)[1]), 'z', 'RHS')
     colnames(tableau) <- col_names
     rownames(tableau) <- rep("", dim(B)[1] + 1)
@@ -79,6 +77,9 @@ iterate_simplex <- function(display) {
     if(display)
         display_simplex()
 }
+
+var_name <- function(base, index)
+    paste(base, as.character(index), sep="")
 
 problem_is_degenerate <- function() {
     # Determine whether the current state of the system is degenerate.
@@ -674,6 +675,96 @@ solve_linear_program <- function(objective_function,
     simplex_B <<- max_inequality_constraints[1:dim(max_inequality_constraints)[1], 1:length(simplex_A)]
 
     simplex_C <<- max_inequality_constraints[,length(simplex_A) + 1]
+
+    cat("----------------------------------------------------------------------------\n")
+    cat("Problem summary:\n")
+    cat("Maximise ")
+    
+
+    includes = c()
+    for(i in 1:length(simplex_A))
+    {
+        if(simplex_A[i] != 0)
+            includes = append(includes, i)
+    }
+
+    for(a in 1:length(includes))
+    {
+        i = includes[a]
+
+        if(simplex_A[i] != 1)
+            coeff = as.character(abs(simplex_A[i]))
+        else
+            coeff = ""
+
+        if(a > 1)
+        {
+            if(simplex_A[i] > 0.0)
+                cat(" + ")
+            else
+                cat(" - ")
+        }
+
+        cat(coeff, var_name("x", i), sep="")
+    }
+
+    
+    cat("\n")
+    cat("Subject to the constraints:\n")
+    for(c in 1:dim(simplex_B)[1])
+    {
+        includes = c()
+        for(i in 1:dim(simplex_B)[2])
+        {
+            if(simplex_B[c, i] != 0)
+                includes = append(includes, i)
+        }
+
+        for(a in 1:length(includes))
+        {
+            v = includes[a]
+
+            if(simplex_B[c, v] == 0)
+                next
+
+            if(simplex_B[c, v] != 1)
+                coeff = as.character(abs(simplex_B[c, v]))
+            else
+                coeff = ""
+
+            if(a > 1)
+            {
+                if(simplex_B[c, v] > 0.0)
+                    cat(" + ")
+                else
+                    cat(" - ")
+            }
+
+            cat(coeff, var_name("x", v), sep="")
+        }
+        cat(" <= ")
+        cat(simplex_C[c])
+        cat("\n")
+    }
+    
+    includes = c()
+    for(i in 1:length(simplex_A))
+    {
+        if(freedom[i] == 0)
+            includes = append(includes, i)
+    }
+    for(a in 1:length(includes))
+    {
+        v = includes[a]
+
+        if(freedom[v] == 1)
+            next
+        cat(var_name("x", v), sep="")
+        if(a != length(includes))
+            cat(", ")
+    }
+    cat(" >= 0\n")
+    cat("----------------------------------------------------------------------------\n")
 
     solve_simplex(simplex_A, simplex_B, simplex_C)
 }
